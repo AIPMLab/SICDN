@@ -1,4 +1,4 @@
-import os
+                                                                                                                                                                                                                                                                                                                                                         import os
 import torch
 import logging
 import timm
@@ -15,7 +15,8 @@ def test_and_log(model, test_loader, global_step: int, writer: SummaryWriter, da
     测试模型并在TensorBoard中记录结果。
     """
     with torch.no_grad():
-        AUC, Recall, Accuracy, F1, labels_total, predicted_total = test1(model, test_loader, dataset=dataset_name)
+        Recall, Accuracy, F1, labels_total, predicted_total = test1(model, test_loader, dataset=dataset_name)
+        AUC = test2(model, test_loader, dataset=dataset_name)
         logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
         logging.info(f"{dataset_name}_model_epoch{global_step} {Accuracy=:.6f}, {AUC=:.6f}, {Recall=:.6f},{F1=:.6f}")
         # 使用累积步长计数器global_step
@@ -68,4 +69,4 @@ if __name__ == "__main__":
         global_step += 1
 
     # 完成记录后，关闭TensorBoard writer
-    writer.close()
+    writer.close()                                                                                                                                                                                            
