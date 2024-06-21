@@ -14,7 +14,6 @@ def test_and_log(model, test_loader, global_step: int, writer: SummaryWriter, da
         AUC = test2(model, test_loader, dataset=dataset_name)
         logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
         logging.info(f"{dataset_name}_model_epoch{global_step} {Accuracy=:.6f}, {AUC=:.6f}, {Recall=:.6f},{F1=:.6f}")
-        # 使用累积步长计数器global_step
         writer.add_scalar(f'{dataset_name}/Accuracy', Accuracy, global_step)
         writer.add_scalar(f'{dataset_name}/AUC', AUC, global_step)
         writer.add_scalar(f'{dataset_name}/Recall', Recall, global_step)
@@ -31,8 +30,6 @@ if __name__ == "__main__":
     dataset_root = "data/"
     normalize = transforms.Normalize([0.47449, 0.47449, 0.47449],[0.22669, 0.22669, 0.22669])
     batch_size = 8
-
-    # 创建数据加载器
     dataset_test = FdDataset(root_dir=os.path.join(dataset_root, "mix"),
                              csv_file=os.path.join(dataset_root, "test.csv"),
                              transform=transforms.Compose([
