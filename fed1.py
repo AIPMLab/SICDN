@@ -16,14 +16,6 @@ from scipy.special import softmax
 import copy
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score, confusion_matrix,recall_score
 from imblearn.metrics import sensitivity_score, specificity_score
-
-"""
-    训练代码的基类
-    训练过程，每个Epoch：
-        所有用户本地训练(本地反向传播)->训练完成后聚合成联邦模型->用联邦模型在所有测试集上测试，输出测试结果(有多少个数据集就有多少组)
-"""
-
-
 class FdDataset(Dataset):
     def __init__(self, root_dir, csv_file, transform=None):
         """
@@ -104,11 +96,31 @@ def test1(model, test_loader, epoch: int = -1, dataset: str = "", criterion=None
         labels, predicted = labels.detach().numpy(), predicted.detach().numpy()
         labels_total.extend(labels)
         predicted_total.extend(predicted)
-    AUC, Recall,  Accuracy, F1= (
-        # roc_auc_score(labels_total, predicted_total, average="macro"),
-        roc_auc_score(labels_total, predicted_total),
+        Recall,  Accuracy, F1= (
         recall_score(labels_total, predicted_total),
         accuracy_score(labels_total, predicted_total),
         f1_score(labels_total, predicted_total),
     )
-    return AUC,Recall, Accuracy, F1,labels_total, predicted_total
+    return Recall, Accuracy, F1,labels_total, predicted_total
+
+from sklearn.metrics import roc_auc_score, recall_score, accuracy_score, f1_score
+import torch.nn.functional as F
+from tqdm import tqdm
+
+def test2(model, test_loader, epoch=-1, dataset="", criterion=None):
+    labels_total = []
+    predicted_prob_total = []
+    model.eval()
+    with torch.no_grad():
+        for images, labels in tqdm(test_loader, desc=f"{dataset} 测试"):
+            outputs = model(images)
+            probs = F.softmax(outputs, dim=1)
+            probs = probs[:, 1].cpu().numpy()
+            labels = labels.cpu().numpy()
+            labels_total.extend(labels)
+            predicted_prob_total.extend(probs)
+
+    AUC = roc_auc_score(labels_total, predicted_prob_total)
+
+    return AUC,labels_total, predicted_prob_total
+
