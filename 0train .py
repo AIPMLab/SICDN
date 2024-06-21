@@ -71,8 +71,6 @@ def train_model(
         Device: {device.type}, \tSaveCheckpoints: {save_checkpoint}
     '''
     logging.info(info)
-
-    # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     if load_path:
         model.load_state_dict(torch.load(load_path))
     model.to(device)
@@ -86,7 +84,7 @@ def train_model(
     # 5. Begin training
     for epoch in range(1, epochs + 1):
         if optimizer.param_groups[0].get("lr", 0) == 0:
-            print("学习率为0")
+            print("lr=0")
             break
         model.train()
         mean_loss = 0
@@ -117,7 +115,7 @@ def train_model(
         with torch.no_grad():
             # AUC, Sensitivity, Specificity, Accuracy, F1, PPV, _, mean_loss = test(
             #     model, test_loader, epoch, "breast1", criterion)
-            Accuracy, labels_total, predicted_total = test_acc(model, test_loader, epoch, "che3")
+            Accuracy, labels_total, predicted_total = test_acc(model, test_loader, epoch, "chest")
             model.to(device)
             # logging.info(f"epoch{epoch + 1}_breast1_model "
             #              f"{AUC=}, {Sensitivity=:.6f}, {Specificity=:.6f}, "
@@ -152,7 +150,7 @@ if __name__ == '__main__':
     model4 = timm.create_model("convnext_base", num_classes=2)
     shap_model = models.shapDenseNet(timm.create_model("densenet121", num_classes=2))
 
-    train_model("data/cheall",model3,
+    train_model("data/",model3,
                 transforms.Normalize([0.48028, 0.48028, 0.48028],[0.22246, 0.22246, 0.22246]),
                 epochs=100, batch_size=8,
                 save_checkpoint=True, save_interval=1)
