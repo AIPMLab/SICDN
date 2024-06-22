@@ -19,7 +19,7 @@ from imblearn.metrics import sensitivity_score, specificity_score
 class FdDataset(Dataset):
     def __init__(self, root_dir, csv_file, transform=None):
         """
-        :param root_dir: 所有数据集根路径
+        :param root_dir: 
         :param csv_file: path to the file containing images with corresponding labels.
         :param transform: optional transform to be applied on a sample.
         """
@@ -83,7 +83,7 @@ def test1(model, test_loader, epoch: int = -1, dataset: str = "", criterion=None
     """
     :param model:
     :param test_loader:
-    :return: 这些评价指标在所有测试集上的平均值
+    :return: 
     """
     # model.cpu()
     # outputs = []
