@@ -7,7 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 from datetime import datetime
 from Train import FdDataset
-from Fed import FdDataset, fed_weighted_average, test, test_acc
+from fed1 import FdDataset, fed_weighted_average, test, test_acc
 import timm
 from torch.backends import mps
 from torch import optim, nn, cuda
@@ -23,8 +23,6 @@ def get_device():
         return torch.device("mps")
     else:
         return torch.device("cpu")
-
-
 def train_model(
         root_path: str,
         model,
