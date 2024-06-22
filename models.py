@@ -22,7 +22,7 @@ class Bottleneck(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
-    # expansion 因子通常用于控制网络的宽度
+    # expansion 
     def forward(self, x):
         identity = x
 
