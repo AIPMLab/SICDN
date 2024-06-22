@@ -16,17 +16,10 @@ import copy
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score, confusion_matrix
 from imblearn.metrics import sensitivity_score, specificity_score
 
-"""
-    训练代码的基类
-    训练过程，每个Epoch：
-        所有用户本地训练(本地反向传播)->训练完成后聚合成联邦模型->用联邦模型在所有测试集上测试，输出测试结果(有多少个数据集就有多少组)
-"""
-
-
 class FdDataset(Dataset):
     def __init__(self, root_dir, csv_file, transform=None):
         """
-        :param root_dir: 所有数据集根路径
+        :param root_dir: 
         :param csv_file: path to the file containing images with corresponding labels.
         :param transform: optional transform to be applied on a sample.
         """
@@ -86,7 +79,7 @@ def test(model, test_loader, epoch: int = -1, dataset: str = "", criterion=None)
     """
     :param model:
     :param test_loader:
-    :return: 这些评价指标在所有测试集上的平均值
+    :return:
     """
     # model.cpu()
     # outputs = []
@@ -136,7 +129,7 @@ class FedTrainer:
                  comment: list = [],
                  databalance: int = 0):
         """
-            前三个没有默认值，需要传入
+            
         :param data_path: 使用ImageFolder格式
         """
         self.ROOT_PATH = root_path
@@ -156,14 +149,14 @@ class FedTrainer:
         self.Databalance = databalance
 
     def start(self):
-        # 设置随机种子
+        
         random.seed(self.seed)
         np.random.seed(self.seed)
         manual_seed(42)
         cuda.manual_seed(self.seed)
-        # 读取数据集数量，每个数据集创建为一个user
+        
         dataset_list = os.listdir(self.ROOT_PATH)
-        # 此处训练集和测试集都是对应的，每个列表会包含相应数量的数据集
+       
         train_datasets = []
         test_datasets = []
         train_dataloaders = []
@@ -171,7 +164,7 @@ class FedTrainer:
         local_models = []
         local_weights = []
         device = "cuda" if cuda.is_available() else "cpu"
-        for i, path in enumerate(dataset_list):  # 给每个数据集创建dataset对象并放进dict_users_list以供下一步训练调用
+        for i, path in enumerate(dataset_list):  
             train_datasets.append(
                 random_split(
                     FdDataset(
@@ -202,47 +195,41 @@ class FedTrainer:
             test_dataloaders.append(DataLoader(test_datasets[i], self.BATCH_SIZE, False, num_workers=self.NUM_WORKER))
             local_models.append(copy.deepcopy(self.NET))
             local_weights.append(copy.deepcopy(self.NET.state_dict()))
-        # 对数据集列表添加完成并创建了train/test DataLoader
-        # 下面开始初始化模型和训练参数
+        # train/test DataLoader
+        # 
         global_model = self.NET
         global_model.to(device)
         criterion = nn.CrossEntropyLoss()
-        # 要实现保留优化器，需要先初始化一个优化器数组
+        # 
         optimizers = [optim.Adam(local_models[i].parameters(), lr=self.LR) for i, _ in enumerate(dataset_list)]
         schedulers = [optim.lr_scheduler.ReduceLROnPlateau(optimizer) for optimizer in optimizers]
         # if self.TB:
         #     writer = SummaryWriter(comment=f"_{self.NET.__class__.__name__}_{os.path.basename(self.ROOT_PATH)}" +
         #                                    (f"_{'_'.join(self.Comment)}" if self.Comment else ""))
-        # writers_list是本地训练时的writer, fed_writers_list是聚合后的联邦模型测试writer
+        # writers_list is local writer, fed_writers_list is fed writer
         writers_list = []
         fed_writers_list = []
         if self.TB:
             """
             """
-            # 创建训练时的SummaryWriter
+            # SummaryWriter
             for dataset in dataset_list:
                 writers_list.append(SummaryWriter(comment=f"_{self.NET.__class__.__name__}_{dataset}" +
                                                           (f"_{'_'.join(self.Comment)}" if self.Comment else "")))
                 fed_writers_list.append(SummaryWriter(comment=f"_{self.NET.__class__.__name__}_Fed_{dataset}" +
                                                               (f"_{'_'.join(self.Comment)}" if self.Comment else "")))
-            # 创建测试时的SummaryWriter
+            # SummaryWriter
             # writers_list.append(SummaryWriter(comment=f"_{self.NET.__class__.__name__}_eva" +
             #                                           (f"_{'_'.join(self.Comment)}" if self.Comment else "")))
         for epoch in range(self.EPOCHES):
-            """
-                训练过程，每个Epoch：
-                    所有用户本地训练(本地反向传播)->训练完成后聚合成联邦模型->用联邦模型在所有测试集上测试，输出测试结果(有多少个数据集就有多少组)
-            """
+            
 
             for i, dataset in enumerate(dataset_list):  # 开始循环dataset_list，i为数据集索引，由i索引train[i]和test[i]
-                """
-                    需要完成：训练
-                """
-                print(f"数据集：{dataset}")
-                # 每个epoch进行一轮训练和评估
-                # 训练和测试完成后及时回收显存中的数据
+               
+                print(f"dataset：{dataset}")
+              
                 if optimizers[i].param_groups[0].get("lr", 0) == 0:
-                    print("学习率为0")
+                    print("lr:0")
                     break
                 local_models[i].to(device)
                 local_models[i].train()
@@ -263,12 +250,12 @@ class FedTrainer:
                 local_weights[i] = local_models[i].state_dict()
                 if self.TB:
                     writers_list[i].add_scalar("info/train_mean_loss", mean_loss, epoch + 1)
-                # 至此，trainLoader中的第i个训练集训练完成
-            # 联邦聚合，聚合完成后该epoch的联邦模型构建完成，开始评估
+              
+   
             with torch.no_grad():
                 global_model_weights = fed_weighted_average(local_weights, train_dataloaders)
             global_model.load_state_dict(global_model_weights)
-            # 评估(本地模型，训练权重)
+      
             for j, dataset in enumerate(dataset_list):
                 with torch.no_grad():
                     local_models[j].eval()
@@ -289,7 +276,7 @@ class FedTrainer:
                 # print(f"epoch{epoch + 1}_{dataset}_model "
                 #       f"AUC={AUC:.6f}, Sensitivity={Sensitivity:.6f}, Specificity={Specificity:.6f}, "
                 #       f"Accuracy={Accuracy:.6f}, F1={F1:.6f}, PPV={PPV:.6f}, NPV={NPV:.6f}\n")
-                # 保存本地模型
+          
                 if not os.path.exists(self.SAVE_PATH):
                     os.mkdir(self.SAVE_PATH)
                 save({
@@ -299,12 +286,12 @@ class FedTrainer:
                                  f"{datetime.now().strftime('%Y%m%d-%H%M%S')}_epoch{epoch + 1}"
                                  f"_{self.NET.__class__.__name__}_{dataset}" +
                                  (f"_{'_'.join(self.Comment)}.pth" if self.Comment else ".pth")))
-            # 评估(联邦模型，聚合权重)
+         
             # best_eva = [math.inf, math.inf, math.inf, math.inf, math.inf, math.inf, math.inf]
             for k, dataset in enumerate(dataset_list):
                 with torch.no_grad():
                     global_model.eval()
-                    # 评估需要计算AUC,Sensitivity,Specificity,Accuracy,
+                    # AUC,Sensitivity,Specificity,Accuracy,
                     # PPV(Positive Predictive Value),NPV(Negative Predictive Value)
                     AUC, Sensitivity, Specificity, Accuracy, F1, PPV, _, mean_loss = test(global_model.cpu(),
                                                                                           test_dataloaders[k], epoch,
@@ -323,14 +310,14 @@ class FedTrainer:
                       # f"{AUC=:.6f}, {Sensitivity=:.6f}, {Specificity=:.6f}, "
                       f"{Accuracy=:.6f}, {F1=:.6f}, {PPV=:.6f}, {mean_loss=:.6f}\n")
             checkpoint = {
-                'epoch': epoch + 1,  # 保存当前轮数
-                'model_state_dict': global_model.state_dict(),  # 保存模型的状态字典
-                # 'optimizer_state_dict': optimizers[j].state_dict(),  # 保存优化器的状态字典
-                # 'loss': loss,  # 保存当前的损失
+                'epoch': epoch + 1,  # 
+                'model_state_dict': global_model.state_dict(),  
+                # 'optimizer_state_dict': optimizers[j].state_dict(), 
+                # 'loss': loss, 
                 # 'lr': optimizers[j].param_groups[0].get('lr', 0)
-                # 如果有其他需要保存的信息，也可以在这里添加
+                # 
             }
-            # 保存联邦模型
+            # 
             if not os.path.exists(self.SAVE_PATH):
                 os.mkdir(self.SAVE_PATH)
             save(checkpoint, os.path.join(self.SAVE_PATH,
@@ -358,7 +345,7 @@ class LocalTrainer:
                  comment: list = [],
                  databalance: int = 0):
         """
-            前三个没有默认值，需要传入
+            
         :param data_path: 使用ImageFolder格式
         """
         self.ROOT_PATH = root_path
@@ -378,14 +365,14 @@ class LocalTrainer:
         self.Databalance = databalance
 
     def start(self):
-        # 设置随机种子
+         
         random.seed(self.seed)
         np.random.seed(self.seed)
         manual_seed(42)
         cuda.manual_seed(self.seed)
-        # 读取数据集数量，每个数据集创建为一个user
+        
         dataset_list = os.listdir(self.ROOT_PATH)
-        # 此处训练集和测试集都是对应的，每个列表会包含相应数量的数据集
+        
         train_datasets = []
         test_datasets = []
         train_dataloaders = []
@@ -435,28 +422,22 @@ class LocalTrainer:
         # writers_list是本地训练时的writer, fed_writers_list是聚合后的联邦模型测试writer
         writers_list = []
         if self.TB:
-            # 创建训练时的SummaryWriter
+            # 
             for dataset in dataset_list:
                 writers_list.append(SummaryWriter(comment=f"_{self.NET.__class__.__name__}_{dataset}" +
                                                           (f"_{'_'.join(self.Comment)}" if self.Comment else "")))
-            # 创建测试时的SummaryWriter
+            # 
             # writers_list.append(SummaryWriter(comment=f"_{self.NET.__class__.__name__}_eva" +
             #                                           (f"_{'_'.join(self.Comment)}" if self.Comment else "")))
         for epoch in range(self.EPOCHES):
-            """
-                训练过程，每个Epoch：
-                    所有用户本地训练(本地反向传播)->输出测试结果(有多少个数据集就有多少组)
-            """
+         
 
             for i, dataset in enumerate(dataset_list):  # 开始循环dataset_list，i为数据集索引，由i索引train[i]和test[i]
-                """
-                    Local训练
-                """
-                print(f"数据集：{dataset}")
-                # 每个epoch进行一轮训练和评估
-                # 训练和测试完成后及时回收显存中的数据
+              
+                print(f"dataset：{dataset}")
+            
                 if optimizers[i].param_groups[0].get("lr", 0) == 0:
-                    print("学习率为0")
+                    print("lr:0")
                     break
                 local_models[i].to(device)
                 local_models[i].train()
@@ -476,8 +457,7 @@ class LocalTrainer:
                 print(f"{dataset} mean_loss:{mean_loss}, lr:{optimizers[i].param_groups[0].get('lr', 0)}\n")
                 if self.TB:
                     writers_list[i].add_scalar("info/train_mean_loss", mean_loss, epoch + 1)
-                # 至此，trainLoader中的第i个训练集训练完成
-            # 评估(本地模型，训练权重)
+           
             for j, dataset in enumerate(dataset_list):
                 with torch.no_grad():
                     local_models[j].eval()
