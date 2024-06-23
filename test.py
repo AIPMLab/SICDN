@@ -20,7 +20,7 @@ def test_and_log(model, test_loader, global_step: int, writer: SummaryWriter, da
         writer.add_scalar(f'{dataset_name}/F1', F1, global_step)
 
 if __name__ == "__main__":
-    checkpoints_dir = "che3 resnet 50check_point"
+    checkpoints_dir = "XXXX"
 
     model = timm.create_model("resnet50", num_classes=2)
     # model = timm.create_model("edgenext_base", num_classes=2)
