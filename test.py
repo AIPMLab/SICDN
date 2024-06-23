@@ -45,6 +45,6 @@ if __name__ == "__main__":
     for i, checkpoint_path in enumerate(checkpoint_files):
         model.load_state_dict(torch.load(checkpoint_path))
         model.eval()
-        test_and_log(model, test_loader, global_step, writer, "che2")
+        test_and_log(model, test_loader, global_step, writer, "XXX")
         global_step += 1
     writer.close()                                                                                                                                                                                            
